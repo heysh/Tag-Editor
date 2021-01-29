@@ -1,15 +1,59 @@
+import json
+import os
+from pathlib import Path
+
+
 class TagEditor:
+
+    def setOwnerDetails(self, ownerDetails):
+        self.owner = ownerDetails['owner']
+        self.email = ownerDetails['email']
+
+    def getOwnerDetailsFromFile(self):
+        try:
+            with open(Path(os.path.dirname(__file__)) / 'ownerDetails.json', 'r') as detailsFile:
+                ownerDetails = json.loads(detailsFile.read())
+
+            self.setOwnerDetails(ownerDetails)
+            return True
+
+        except IOError:
+            return False
+
+    def getOwnerDetailsFromUser(self):
+        owner = input('Enter your name: ')
+        email = input('Enter your email: ')
+        ownerDetails = {'owner': owner, 'email': email}
+        self.setOwnerDetails(ownerDetails)
+
+        with open(Path(os.path.dirname(__file__)) / 'ownerDetails.json', 'w') as detailsFile:
+            detailsFile.write(json.dumps(ownerDetails))
+
+    def getDirectory(self):
+        path = input('Drag the music here: ').strip('"').strip("'")
+
+        if path[-4:] == ".m4a":
+            self.directory = Path(path).parent
+        else:
+            self.directory = path
 
     def __init__(self):
         print("test")
 
         # 1) get owner details (name and email)
         #       a) if details don't exist, ask user to enter details and store (json)
-        #
+
+        if not self.getOwnerDetailsFromFile():
+            self.getOwnerDetailsFromUser()
+
         # 2) infinite loop (to catch multiple directories)
-        #
-        # 3) get the directory
-        #
+
+        while True:
+
+            # 3) get the directory
+
+            self.getDirectory()
+
         # 4) get the paths of all the songs in this directory
         #
         # 5) set the number of processed songs to 0
