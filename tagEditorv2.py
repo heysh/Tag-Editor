@@ -33,10 +33,14 @@ class TagEditor:
         path = input('Drag the music here: ').strip('"').strip("'")
 
         if Path(path).exists():
-            self.directory = Path(path).parent if path[-4:] == ".m4a" else path
+            self.directory = Path(
+                path).parent if path[-4:] == ".m4a" else Path(path)
             return True
         else:
             return False
+
+    def getSongs(self):
+        return
 
     def __init__(self):
 
@@ -50,28 +54,30 @@ class TagEditor:
 
         while True:
 
-            # 3) get the directory
+            # 3) get the directory (folders or files)
+            #       a) if the directory isn't valid, keep asking until the directory is valid
 
             while not self.getDirectory():
                 self.getDirectory()
 
             print("valid directory")
+            print(self.__dict__)
 
-        # 4) get the paths of all the songs in this directory
-        #
-        # 5) set the number of processed songs to 0
-        #
-        # 6) iterate through every song
-        #
-        # 7) create backup of current song
-        #
-        # 8) set owner details on the current song
-        #       a) iTunes owner details (hex)
-        #       b) remaining owner details (name and email)
-        #
-        # 9) increment number of processed songs
-        #
-        # 10) output "finished processing" message
+            # 4) get the paths of all the songs in this directory
+            #
+            # 5) set the number of processed songs to 0
+            #
+            # 6) iterate through every song
+            #
+            # 7) create backup of current song
+            #
+            # 8) set owner details on the current song
+            #       a) iTunes owner details (hex)
+            #       b) remaining owner details (name and email)
+            #
+            # 9) increment number of processed songs
+            #
+            # 10) output "finished processing" message
 
 
 if __name__ == '__main__':
