@@ -32,13 +32,13 @@ class TagEditor:
     def getDirectory(self):
         path = input('Drag the music here: ').strip('"').strip("'")
 
-        if path[-4:] == ".m4a":
-            self.directory = Path(path).parent
+        if Path(path).exists():
+            self.directory = Path(path).parent if path[-4:] == ".m4a" else path
+            return True
         else:
-            self.directory = path
+            return False
 
     def __init__(self):
-        print("test")
 
         # 1) get owner details (name and email)
         #       a) if details don't exist, ask user to enter details and store (json)
@@ -52,7 +52,10 @@ class TagEditor:
 
             # 3) get the directory
 
-            self.getDirectory()
+            while not self.getDirectory():
+                self.getDirectory()
+
+            print("valid directory")
 
         # 4) get the paths of all the songs in this directory
         #
