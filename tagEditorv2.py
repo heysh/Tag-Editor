@@ -125,7 +125,6 @@ class TagEditor:
 
             # 3) get the paths of all the songs in this directory
             self.getSongs()
-            print(self.__dict__)
 
             # set the number of processed songs to 0
             processed = 0
