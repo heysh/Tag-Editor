@@ -2,9 +2,13 @@ import json
 import os
 from pathlib import Path
 from shutil import copy2
+import binascii
 
 
 class TagEditor:
+
+    nameOffset = 1534
+    zeroCount = 516
 
     def setOwnerDetails(self, ownerDetails):
         self.owner = ownerDetails['owner']
@@ -25,7 +29,8 @@ class TagEditor:
     def getOwnerDetailsFromUser(self):
         owner = input('Enter your name: ')
         email = input('Enter your email: ')
-        backup = input('Would you like to create backups? (Y/N) ').upper()
+        backup = True if input(
+            'Would you like to create backups? (Y/N): ').upper() == 'Y' else False
         ownerDetails = {'owner': owner, 'email': email, 'backup': backup}
         self.setOwnerDetails(ownerDetails)
 
@@ -47,48 +52,63 @@ class TagEditor:
             self.directory) if file_[-4:] == '.m4a']
 
     def createBackup(self, song):
-        copy2(self.directory / song, self.directory / song / '.bkp')
+        copy2(self.directory / song, self.directory / (song + '.bkp'))
+
+    def getOwnerInHex(self):
+        return bytearray(self.owner.encode('utf-8').hex().encode('utf-8'))
+
+    def getZerosInHex(self):
+        return (self.zeroCount - len(self.getOwnerInHex())) * bytearray('0'.encode('utf-8'))
+
+    def setiTunesOwner(self, song):
+        try:
+            with open(self.directory / song, 'r+b') as f:
+                content = bytearray(binascii.hexlify(f.read()))
+                content[self.nameOffset:] = self.getOwnerInHex() + \
+                    self.getZerosInHex()
+                f.seek(0)
+                f.write(binascii.unhexlify(content))
+
+            return True
+        except IOError:
+            return False
 
     def __init__(self):
 
         # 1) get owner details (name and email)
         #       a) if details don't exist, ask user to enter details and store (json)
-
         if not self.getOwnerDetailsFromFile():
             self.getOwnerDetailsFromUser()
 
         # 2) infinite loop (to catch multiple directories)
-
         while True:
 
             # 3) get the directory (folders or files)
             #       a) if the directory isn't valid, keep asking until the directory is valid
-
             while not self.getDirectory():
                 self.getDirectory()
 
             # 4) get the paths of all the songs in this directory
-
             self.getSongs()
             print(self.__dict__)
 
             # 5) set the number of processed songs to 0
-
             processed = 0
 
             # 6) iterate through every song
-
             for song in self.songs:
                 print('  > Processing', song)
 
                 # 7) create backup of current song (user preference)
-                if self.backup == 'Y':
+                if self.backup:
                     self.createBackup(song)
 
                 # 8) set owner details on the current song
                 #       a) iTunes owner details (hex)
+                self.setiTunesOwner(song)
+
                 #       b) remaining owner details (name and email)
-                #
+
                 # 9) increment number of processed songs
                 #
             # 10) output "finished processing" message
