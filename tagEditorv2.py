@@ -4,12 +4,13 @@ from pathlib import Path
 from shutil import copy2
 import binascii
 from mutagen.mp4 import MP4
+import datetime
 
 
 class TagEditor:
 
-    nameOffset = 1534
     zeroCount = 516
+    offsetChangedDate = '2021-01-22 00:00:00'
 
     def setOwnerDetails(self, ownerDetails):
         self.owner = ownerDetails['owner']
@@ -55,6 +56,17 @@ class TagEditor:
     def createBackup(self, song):
         copy2(self.directory / song, self.directory / (song + '.bkp'))
 
+    def getDateTimeFromString(self, dateString):
+        return datetime.datetime.strptime(dateString, '%Y-%m-%d %H:%M:%S')
+
+    def setOffset(self, song):
+        tags = MP4(self.directory / song)
+
+        purchasedDate = self.getDateTimeFromString(tags['purd'][0])
+        offsetChangedDate = self.getDateTimeFromString(self.offsetChangedDate)
+
+        self.nameOffset = 1534 if purchasedDate > offsetChangedDate else 1352
+
     def getNameInHex(self):
         return bytearray('name'.encode('utf-8').hex().encode('utf-8'))
 
@@ -85,13 +97,15 @@ class TagEditor:
     def setTags(self, song):
         tags = MP4(self.directory / song)
 
+        if 'ownr' not in tags or 'apID' not in tags:
+            return False
+
         tags['ownr'] = [self.owner]
         tags['apID'] = [self.email]
 
-        # print(tags['purd'])
-        # print(type(tags['purd'][0]))
-
         tags.save()
+
+        return True
 
     def __init__(self):
 
@@ -127,17 +141,26 @@ class TagEditor:
                 if self.backup:
                     self.createBackup(song)
 
-                # 5) set owner details on the current song
+                # 5) get the correct offset that is to be used
+                self.setOffset(song)
+
+                # 6) set owner details on the current song
                 #       a) iTunes owner details (hex)
                 if not self.setiTunesOwner(song):
                     print('  > Unable to set iTunes owner on', song)
+                    continue
 
                 #       b) remaining owner details (name and email)
-                self.setTags(song)
+                if not self.setTags(song):
+                    print('  > Unable to set owner detail tags on', song)
+                    continue
 
                 # increment number of processed songs
-                #
-            # 6) output "finished processing" message
+                processed += 1
+
+            # 7) output "finished processing" message
+            print('Finished processing', processed,
+                  'file.\n' if processed == 1 else 'files.\n')
 
 
 if __name__ == '__main__':
