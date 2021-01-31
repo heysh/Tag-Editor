@@ -10,8 +10,6 @@ import string
 from bs4 import BeautifulSoup
 from urllib.request import urlretrieve
 
-# TODO: pip install requirements.txt
-
 
 class TagEditor:
 
