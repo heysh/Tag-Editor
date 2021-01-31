@@ -154,7 +154,7 @@ class TagEditor:
 
         with open(self.directory / 'cover.jpg', 'rb') as f:
             tags['covr'] = [
-                MP4Cover(f.read(), imageFormat=MP4Cover.FORMAT_JPEG)]
+                MP4Cover(f.read(), imageformat=MP4Cover.FORMAT_JPEG)]
 
         tags.save()
 
