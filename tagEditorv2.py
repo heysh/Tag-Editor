@@ -3,19 +3,27 @@ import os
 from pathlib import Path
 from shutil import copy2
 import binascii
-from mutagen.mp4 import MP4
+from mutagen.mp4 import MP4, MP4Cover
 import datetime
+import requests
+import string
+from bs4 import BeautifulSoup
+from urllib.request import urlretrieve
+
+# TODO: pip install requirements.txt
 
 
 class TagEditor:
 
     zeroCount = 516
     offsetChangedDate = '2021-01-22 00:00:00'
+    baseUrl = 'https://music.apple.com/us/album/'
 
     def setOwnerDetails(self, ownerDetails):
         self.owner = ownerDetails['owner']
         self.email = ownerDetails['email']
         self.backup = ownerDetails['backup']
+        self.coverArts = ownerDetails['coverArts']
 
     def getOwnerDetailsFromFile(self):
         try:
@@ -33,7 +41,10 @@ class TagEditor:
         email = input('Enter your email: ')
         backup = True if input(
             'Would you like to create backups? (Y/N): ').upper() == 'Y' else False
-        ownerDetails = {'owner': owner, 'email': email, 'backup': backup}
+        coverArts = True if input(
+            'Would you like to use the largest cover arts? (Y/N): ').upper() == 'Y' else False
+        ownerDetails = {'owner': owner, 'email': email,
+                        'backup': backup, 'coverArts': coverArts}
         self.setOwnerDetails(ownerDetails)
 
         with open(Path(os.path.dirname(__file__)) / 'ownerDetails.json', 'w') as detailsFile:
@@ -97,6 +108,7 @@ class TagEditor:
     def setTags(self, song):
         tags = MP4(self.directory / song)
 
+        # if the tags don't exist, invalid m4a file
         if 'ownr' not in tags or 'apID' not in tags:
             return False
 
@@ -106,6 +118,45 @@ class TagEditor:
         tags.save()
 
         return True
+
+    def urlifyAlbum(self, album):
+        album = album.lower()
+        album = album.translate(str.maketrans('', '', string.punctuation))
+        album = ' '.join(album.split())
+        album = album.replace(' ', '-')
+        return album
+
+    def getCoverArtLink(self, soup):
+        main = soup.find('div', {'class': 'product-info'})
+        image = main.find_all('source', {'type': 'image/jpeg'})
+        url = image[0]['srcset']
+        url = url[:url.index(' ')]
+        url = url[:-16] + '99999x99999bb-100.jpg'
+        return url
+
+    def getCoverArt(self, song):
+        tags = MP4(self.directory / song)
+
+        # Apple Music url construction
+        album = self.urlifyAlbum(tags['\xa9alb'][0])
+        playlistID = str(tags['plID'][0])
+        url = self.baseUrl + album + '/' + playlistID
+
+        page = requests.get(url)
+        soup = BeautifulSoup(page.text, 'html.parser')
+
+        imageUrl = self.getCoverArtLink(soup)
+
+        urlretrieve(imageUrl, self.directory / 'cover.jpg')
+
+    def setCoverArt(self, song):
+        tags = MP4(self.directory / song)
+
+        with open(self.directory / 'cover.jpg', 'rb') as f:
+            tags['covr'] = [
+                MP4Cover(f.read(), imageFormat=MP4Cover.FORMAT_JPEG)]
+
+        tags.save()
 
     def __init__(self):
 
@@ -126,6 +177,9 @@ class TagEditor:
             # 3) get the paths of all the songs in this directory
             self.getSongs()
 
+            # 4) get the cover art
+            self.getCoverArt(self.songs[0])
+
             # set the number of processed songs to 0
             processed = 0
 
@@ -136,14 +190,14 @@ class TagEditor:
                 # boolean to track if the current song has been processed successfully
                 self.processedSuccessfully = True
 
-                # 4) create backup of current song (user preference)
+                # 5) create backup of current song (user preference)
                 if self.backup:
                     self.createBackup(song)
 
-                # 5) get the correct offset that is to be used
+                # 6) get the correct offset that is to be used
                 self.setOffset(song)
 
-                # 6) set owner details on the current song
+                # 7) set owner details on the current song
                 #       a) iTunes owner details (hex)
                 if not self.setiTunesOwner(song):
                     print('  > Unable to set iTunes owner on', song)
@@ -154,10 +208,14 @@ class TagEditor:
                     print('  > Unable to set owner detail tags on', song)
                     continue
 
+                # 8) set the cover art (user preference)
+                if self.coverArts:
+                    self.setCoverArt(song)
+
                 # increment number of processed songs
                 processed += 1
 
-            # 7) output "finished processing" message
+            # 9) output "finished processing" message
             print('Finished processing', processed,
                   'file.\n' if processed == 1 else 'files.\n')
 
