@@ -10,6 +10,8 @@ import string
 from bs4 import BeautifulSoup
 from urllib.request import urlretrieve
 
+# TODO: recursively search for folders inside the given folder
+
 
 class TagEditor:
 
@@ -169,13 +171,16 @@ class TagEditor:
 
             # 2) get the directory (folders or files)
             #       a) if the directory isn't valid, keep asking until the directory is valid
-            while not self.getDirectory():
-                self.getDirectory()
+            while not (validDirectory := self.getDirectory()):
+                continue
 
             # 3) get the paths of all the songs in this directory
             self.getSongs()
 
-            # 4) get the cover art
+            if len(self.songs) < 1:
+                continue
+
+            # # 4) get the cover art
             self.getCoverArt(self.songs[0])
 
             # set the number of processed songs to 0
