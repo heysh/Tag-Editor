@@ -158,10 +158,14 @@ class TagEditor:
 
         tags.save()
 
+    def getAlbum(self, song):
+        tags = MP4(self.directory / song)
+        self.album = tags['\xa9alb'][0]
+
     def __init__(self):
 
-        # 1) get owner details (name and email)
-        #       a) if details don't exist, ask user to enter details and store (json)
+        # get owner details (name and email)
+        # if details don't exist, ask user to enter details and store (json)
         if not self.getOwnerDetailsFromFile():
             self.getOwnerDetailsFromUser()
             os.system('cls')
@@ -169,19 +173,22 @@ class TagEditor:
         # infinite loop (to catch multiple directories)
         while True:
 
-            # 2) get the directory (folders or files)
-            #       a) if the directory isn't valid, keep asking until the directory is valid
+            # get the directory (folders or files)
+            # if the directory isn't valid, keep asking until the directory is valid
             while not (validDirectory := self.getDirectory()):
                 continue
 
-            # 3) get the paths of all the songs in this directory
+            # get the paths of all the songs in this directory
             self.getSongs()
 
             # if there are no songs in this directory, prompt the user for another directory
             if len(self.songs) < 1:
                 continue
 
-            # # 4) get the cover art
+            # get the album
+            self.getAlbum(self.songs[0])
+
+            # get the cover art
             self.getCoverArt(self.songs[0])
 
             # set the number of processed songs to 0
@@ -194,34 +201,32 @@ class TagEditor:
                 # boolean to track if the current song has been processed successfully
                 self.processedSuccessfully = True
 
-                # 5) create backup of current song (user preference)
+                # create backup of current song (user preference)
                 if self.backup:
                     self.createBackup(song)
 
-                # 6) get the correct offset that is to be used
+                # get the correct offset that is to be used
                 self.setOffset(song)
 
-                # 7) set owner details on the current song
-                #       a) iTunes owner details (hex)
+                # set owner details on the current song - iTunes owner details (hex)
                 if not self.setiTunesOwner(song):
                     print('  > Unable to set iTunes owner on', song)
                     continue
 
-                #       b) remaining owner details (name and email)
+                # set owner details on the current song - remaining owner details (name and email)
                 if not self.setTags(song):
                     print('  > Unable to set owner detail tags on', song)
                     continue
 
-                # 8) set the cover art (user preference)
+                # set the cover art (user preference)
                 if self.coverArts:
                     self.setCoverArt(song)
 
                 # increment number of processed songs
                 processed += 1
 
-            # 9) output "finished processing" message
-            print('Finished processing', processed,
-                  'file.\n' if processed == 1 else 'files.\n')
+            # output "finished processing" message
+            print('Finished processing', self.album + '.\n')
 
 
 if __name__ == '__main__':
