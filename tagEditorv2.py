@@ -67,6 +67,10 @@ class TagEditor:
         self.songs = [file_ for file_ in os.listdir(
             directory) if file_[-4:] == '.m4a']
 
+    def getAlbum(self, directory, song):
+        tags = MP4(directory / song)
+        self.album = tags['\xa9alb'][0]
+
     def createBackup(self, directory, song):
         copy2(directory / song, directory / (song + '.bkp'))
 
@@ -119,7 +123,6 @@ class TagEditor:
         tags['apID'] = [self.email]
 
         tags.save()
-
         return True
 
     def urlifyAlbum(self, album):
@@ -160,10 +163,6 @@ class TagEditor:
                 MP4Cover(f.read(), imageformat=MP4Cover.FORMAT_JPEG)]
 
         tags.save()
-
-    def getAlbum(self, directory, song):
-        tags = MP4(directory / song)
-        self.album = tags['\xa9alb'][0]
 
     def __init__(self):
 
