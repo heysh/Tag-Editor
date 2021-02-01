@@ -60,18 +60,21 @@ class TagEditor:
         else:
             return False
 
-    def getSongs(self):
-        self.songs = [file_ for file_ in os.listdir(
-            self.directory) if file_[-4:] == '.m4a']
+    def getSubdirectories(self):
+        self.subdirectories = [Path(x[0]) for x in os.walk(self.directory)]
 
-    def createBackup(self, song):
-        copy2(self.directory / song, self.directory / (song + '.bkp'))
+    def getSongs(self, directory):
+        self.songs = [file_ for file_ in os.listdir(
+            directory) if file_[-4:] == '.m4a']
+
+    def createBackup(self, directory, song):
+        copy2(directory / song, directory / (song + '.bkp'))
 
     def getDateTimeFromString(self, dateString):
         return datetime.datetime.strptime(dateString, '%Y-%m-%d %H:%M:%S')
 
-    def setOffset(self, song):
-        tags = MP4(self.directory / song)
+    def setOffset(self, directory, song):
+        tags = MP4(directory / song)
 
         purchasedDate = self.getDateTimeFromString(tags['purd'][0])
         offsetChangedDate = self.getDateTimeFromString(self.offsetChangedDate)
@@ -87,9 +90,9 @@ class TagEditor:
     def getZerosInHex(self):
         return (self.zeroCount - len(self.getOwnerInHex())) * bytearray('0'.encode('utf-8'))
 
-    def setiTunesOwner(self, song):
+    def setiTunesOwner(self, directory, song):
         try:
-            with open(self.directory / song, 'r+b') as f:
+            with open(directory / song, 'r+b') as f:
                 content = bytearray(binascii.hexlify(f.read()))
 
                 # if the iTunes owner tag isn't located here
@@ -105,8 +108,8 @@ class TagEditor:
         except IOError:
             return False
 
-    def setTags(self, song):
-        tags = MP4(self.directory / song)
+    def setTags(self, directory, song):
+        tags = MP4(directory / song)
 
         # if the tags don't exist, invalid m4a file
         if 'ownr' not in tags or 'apID' not in tags:
@@ -134,8 +137,8 @@ class TagEditor:
         url = url[:-16] + '99999x99999bb-100.jpg'
         return url
 
-    def getCoverArt(self, song):
-        tags = MP4(self.directory / song)
+    def getCoverArt(self, directory, song):
+        tags = MP4(directory / song)
 
         # Apple Music url construction
         album = self.urlifyAlbum(tags['\xa9alb'][0])
@@ -147,19 +150,19 @@ class TagEditor:
 
         imageUrl = self.getCoverArtLink(soup)
 
-        urlretrieve(imageUrl, self.directory / 'cover.jpg')
+        urlretrieve(imageUrl, directory / 'cover.jpg')
 
-    def setCoverArt(self, song):
-        tags = MP4(self.directory / song)
+    def setCoverArt(self, directory, song):
+        tags = MP4(directory / song)
 
-        with open(self.directory / 'cover.jpg', 'rb') as f:
+        with open(directory / 'cover.jpg', 'rb') as f:
             tags['covr'] = [
                 MP4Cover(f.read(), imageformat=MP4Cover.FORMAT_JPEG)]
 
         tags.save()
 
-    def getAlbum(self, song):
-        tags = MP4(self.directory / song)
+    def getAlbum(self, directory, song):
+        tags = MP4(directory / song)
         self.album = tags['\xa9alb'][0]
 
     def __init__(self):
@@ -178,55 +181,52 @@ class TagEditor:
             while not (validDirectory := self.getDirectory()):
                 continue
 
-            # get the paths of all the songs in this directory
-            self.getSongs()
+            # get a list of all the subdirectories in this directory
+            self.getSubdirectories()
 
-            # if there are no songs in this directory, prompt the user for another directory
-            if len(self.songs) < 1:
-                continue
+            # iterate through every subdirectory
+            for subdirectory in self.subdirectories:
 
-            # get the album
-            self.getAlbum(self.songs[0])
+                # get the file names of all the songs in this subdirectory
+                self.getSongs(subdirectory)
 
-            # get the cover art
-            self.getCoverArt(self.songs[0])
-
-            # set the number of processed songs to 0
-            processed = 0
-
-            # iterate through every song
-            for song in self.songs:
-                print('  > Processing', song)
-
-                # boolean to track if the current song has been processed successfully
-                self.processedSuccessfully = True
-
-                # create backup of current song (user preference)
-                if self.backup:
-                    self.createBackup(song)
-
-                # get the correct offset that is to be used
-                self.setOffset(song)
-
-                # set owner details on the current song - iTunes owner details (hex)
-                if not self.setiTunesOwner(song):
-                    print('  > Unable to set iTunes owner on', song)
+                # if there are no songs in this subdirectory, move onto the next one
+                if len(self.songs) < 1:
                     continue
 
-                # set owner details on the current song - remaining owner details (name and email)
-                if not self.setTags(song):
-                    print('  > Unable to set owner detail tags on', song)
-                    continue
+                # get the album
+                self.getAlbum(subdirectory, self.songs[0])
 
-                # set the cover art (user preference)
-                if self.coverArts:
-                    self.setCoverArt(song)
+                # get the cover art
+                self.getCoverArt(subdirectory, self.songs[0])
 
-                # increment number of processed songs
-                processed += 1
+                # iterate through every song
+                for song in self.songs:
+                    print('  > Processing', song)
 
-            # output "finished processing" message
-            print('Finished processing', self.album + '.\n')
+                    # create backup of current song (user preference)
+                    if self.backup:
+                        self.createBackup(subdirectory, song)
+
+                    # get the correct offset that is to be used
+                    self.setOffset(subdirectory, song)
+
+                    # set owner details on the current song - iTunes owner details (hex)
+                    if not self.setiTunesOwner(subdirectory, song):
+                        print('  > Unable to set iTunes owner on', song)
+                        continue
+
+                    # set owner details on the current song - remaining owner details (name and email)
+                    if not self.setTags(subdirectory, song):
+                        print('  > Unable to set owner detail tags on', song)
+                        continue
+
+                    # set the cover art (user preference)
+                    if self.coverArts:
+                        self.setCoverArt(subdirectory, song)
+
+                # output "finished processing" message
+                print('Finished processing', self.album + '.\n')
 
 
 if __name__ == '__main__':
