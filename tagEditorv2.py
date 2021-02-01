@@ -177,6 +177,7 @@ class TagEditor:
             # 3) get the paths of all the songs in this directory
             self.getSongs()
 
+            # if there are no songs in this directory, prompt the user for another directory
             if len(self.songs) < 1:
                 continue
 
