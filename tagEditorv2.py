@@ -212,7 +212,7 @@ class TagEditor:
 
                     # set owner details on the current song - iTunes owner details (hex)
                     if not self.setiTunesOwner(subdirectory, song):
-                        print('  > Unable to set iTunes owner on', song)
+                        print('  > Unable to set iTunes owner tag on', song)
                         continue
 
                     # set owner details on the current song - remaining owner details (name and email)
