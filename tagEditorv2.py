@@ -10,7 +10,7 @@ import string
 from bs4 import BeautifulSoup
 from urllib.request import urlretrieve
 
-# TODO: recursively search for folders inside the given folder
+# TODO: catch errors whilst getting the album art
 
 
 class TagEditor:
