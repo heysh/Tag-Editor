@@ -8,9 +8,7 @@ import datetime
 import requests
 import string
 from bs4 import BeautifulSoup
-from urllib.request import urlretrieve
-
-# TODO: catch errors whilst getting the album art
+import urllib
 
 
 class TagEditor:
@@ -133,8 +131,11 @@ class TagEditor:
         return album
 
     def getCoverArtLink(self, soup):
-        main = soup.find('div', {'class': 'product-info'})
+        if (main := soup.find('div', {'class': 'product-info'})) is None:
+            return False
+
         image = main.find_all('source', {'type': 'image/jpeg'})
+        print("image:", image)
         url = image[0]['srcset']
         url = url[:url.index(' ')]
         url = url[:-16] + '99999x99999bb-100.jpg'
@@ -148,12 +149,25 @@ class TagEditor:
         playlistID = str(tags['plID'][0])
         url = self.baseUrl + album + '/' + playlistID
 
-        page = requests.get(url)
+        # in case the album doesn't correspond to an Apple Music page
+        try:
+            page = requests.get(url)
+        except requests.exceptions.RequestException:
+            return False
+
         soup = BeautifulSoup(page.text, 'html.parser')
 
-        imageUrl = self.getCoverArtLink(soup)
+        # in case there is a problem getting the link for the cover art
+        if not (imageUrl := self.getCoverArtLink(soup)):
+            return False
 
-        urlretrieve(imageUrl, directory / 'cover.jpg')
+        # in case there is a problem downloading the cover art
+        try:
+            urllib.request.urlretrieve(imageUrl, directory / 'cover.jpg')
+        except urllib.error.URLError:
+            return False
+
+        return True
 
     def setCoverArt(self, directory, song):
         tags = MP4(directory / song)
@@ -197,7 +211,9 @@ class TagEditor:
                 self.getAlbum(subdirectory, self.songs[0])
 
                 # get the cover art
-                self.getCoverArt(subdirectory, self.songs[0])
+                # if the cover art could not be retrieved, display a message
+                if (not (retrievedCoverArt := self.getCoverArt(subdirectory, self.songs[0]))) and self.coverArts:
+                    print('  ! Could not retrieve cover art')
 
                 # iterate through every song
                 for song in self.songs:
@@ -212,20 +228,20 @@ class TagEditor:
 
                     # set owner details on the current song - iTunes owner details (hex)
                     if not self.setiTunesOwner(subdirectory, song):
-                        print('  > Unable to set iTunes owner tag on', song)
+                        print('  ! Unable to set iTunes owner tag on', song)
                         continue
 
                     # set owner details on the current song - remaining owner details (name and email)
                     if not self.setTags(subdirectory, song):
-                        print('  > Unable to set owner detail tags on', song)
+                        print('  ! Unable to set owner detail tags on', song)
                         continue
 
                     # set the cover art (user preference)
-                    if self.coverArts:
+                    if retrievedCoverArt and self.coverArts:
                         self.setCoverArt(subdirectory, song)
 
                 # output "finished processing" message
-                print('Finished processing', self.album + '.\n')
+                print('Finished processing', self.album + '\n')
 
 
 if __name__ == '__main__':
