@@ -135,7 +135,6 @@ class TagEditor:
             return False
 
         image = main.find_all('source', {'type': 'image/jpeg'})
-        print("image:", image)
         url = image[0]['srcset']
         url = url[:url.index(' ')]
         url = url[:-16] + '99999x99999bb-100.jpg'
@@ -210,10 +209,11 @@ class TagEditor:
                 # get the album
                 self.getAlbum(subdirectory, self.songs[0])
 
-                # get the cover art
+                # get the cover art (user preference)
                 # if the cover art could not be retrieved, display a message
-                if (not (retrievedCoverArt := self.getCoverArt(subdirectory, self.songs[0]))) and self.coverArts:
-                    print('  ! Could not retrieve cover art')
+                if self.coverArts:
+                    if not (retrievedCoverArt := self.getCoverArt(subdirectory, self.songs[0])):
+                        print('  ! Could not retrieve cover art')
 
                 # iterate through every song
                 for song in self.songs:
@@ -235,8 +235,9 @@ class TagEditor:
                         print('  ! Unable to set owner detail tags on', song)
 
                     # set the cover art (user preference)
-                    if retrievedCoverArt and self.coverArts:
-                        self.setCoverArt(subdirectory, song)
+                    if self.coverArts:
+                        if retrievedCoverArt:
+                            self.setCoverArt(subdirectory, song)
 
                 # output "finished processing" message
                 print('Finished processing', self.album + '\n')
