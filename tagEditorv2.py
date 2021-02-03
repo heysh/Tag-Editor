@@ -18,7 +18,6 @@ class TagEditor:
 
     zeroCount = 516
     name = b'\x01\x08\x6E\x61\x6D\x65'
-    offsetChangedDate = '2021-01-22 00:00:00'
     baseUrl = 'https://music.apple.com/us/album/'
 
     def setOwnerDetails(self, ownerDetails):
