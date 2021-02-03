@@ -11,8 +11,6 @@ from bs4 import BeautifulSoup
 import urllib
 import re
 
-# TODO: make recursive folder searching an optional feature
-
 
 class TagEditor:
 
@@ -25,6 +23,7 @@ class TagEditor:
         self.email = ownerDetails['email']
         self.backup = ownerDetails['backup']
         self.coverArts = ownerDetails['coverArts']
+        self.recursiveSubdirectorySearching = ownerDetails['recursiveSubdirectorySearching']
 
     def getOwnerDetailsFromFile(self):
         try:
@@ -44,8 +43,10 @@ class TagEditor:
             'Would you like to create backups? (Y/N): ').upper() == 'Y' else False
         coverArts = True if input(
             'Would you like to use the largest cover arts? (Y/N): ').upper() == 'Y' else False
-        ownerDetails = {'owner': owner, 'email': email,
-                        'backup': backup, 'coverArts': coverArts}
+        recursiveSubdirectorySearching = True if input(
+            'Would you like to tag the songs inside subfolders? (Y/N): ').upper() == 'Y' else False
+        ownerDetails = {'owner': owner, 'email': email, 'backup': backup, 'coverArts': coverArts,
+                        'recursiveSubdirectorySearching': recursiveSubdirectorySearching}
         self.setOwnerDetails(ownerDetails)
 
         with open(Path(os.path.dirname(__file__)) / 'ownerDetails.json', 'w') as detailsFile:
@@ -115,10 +116,8 @@ class TagEditor:
 
     def setTags(self, directory, song):
         tags = MP4(directory / song)
-
         tags['ownr'] = [self.owner]
         tags['apID'] = [self.email]
-
         tags.save()
 
     def urlifyAlbum(self, album):
@@ -191,8 +190,11 @@ class TagEditor:
             while not (validDirectory := self.getDirectory()):
                 continue
 
-            # get a list of all the subdirectories in this directory
-            self.getSubdirectories()
+            # get a list of all the subdirectories in this directory (user preference)
+            if self.recursiveSubdirectorySearching:
+                self.getSubdirectories()
+            else:
+                self.subdirectories = [self.directory]
 
             # iterate through every subdirectory
             for subdirectory in self.subdirectories:
