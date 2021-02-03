@@ -9,11 +9,15 @@ import requests
 import string
 from bs4 import BeautifulSoup
 import urllib
+import re
+
+# TODO: make recursive folder searching an optional feature
 
 
 class TagEditor:
 
     zeroCount = 516
+    name = b'\x01\x08\x6E\x61\x6D\x65'
     offsetChangedDate = '2021-01-22 00:00:00'
     baseUrl = 'https://music.apple.com/us/album/'
 
@@ -75,13 +79,18 @@ class TagEditor:
     def getDateTimeFromString(self, dateString):
         return datetime.datetime.strptime(dateString, '%Y-%m-%d %H:%M:%S')
 
-    def setOffset(self, directory, song):
-        tags = MP4(directory / song)
+    def getOffset(self, directory, song):
+        with open(directory / song, 'rb') as f:
+            match = re.search(self.name, f.read())
+            f.seek(0)
+            content = bytearray(binascii.hexlify(f.read()))
 
-        purchasedDate = self.getDateTimeFromString(tags['purd'][0])
-        offsetChangedDate = self.getDateTimeFromString(self.offsetChangedDate)
+        # if the iTunes owner tag couldn't be found
+        if not match:
+            return False
 
-        self.nameOffset = 1534 if purchasedDate > offsetChangedDate else 1352
+        self.nameOffset = (match.start() + 6) * 2
+        return True
 
     def getNameInHex(self):
         return bytearray('name'.encode('utf-8').hex().encode('utf-8'))
@@ -96,11 +105,6 @@ class TagEditor:
         try:
             with open(directory / song, 'r+b') as f:
                 content = bytearray(binascii.hexlify(f.read()))
-
-                # if the iTunes owner tag isn't located here
-                if content[self.nameOffset - 8:self.nameOffset] != self.getNameInHex():
-                    return False
-
                 content[self.nameOffset:] = self.getOwnerInHex() + \
                     self.getZerosInHex()
                 f.seek(0)
@@ -113,15 +117,10 @@ class TagEditor:
     def setTags(self, directory, song):
         tags = MP4(directory / song)
 
-        # if the tags don't exist, invalid m4a file
-        if 'ownr' not in tags or 'apID' not in tags:
-            return False
-
         tags['ownr'] = [self.owner]
         tags['apID'] = [self.email]
 
         tags.save()
-        return True
 
     def urlifyAlbum(self, album):
         album = album.lower()
@@ -223,16 +222,18 @@ class TagEditor:
                     if self.backup:
                         self.createBackup(subdirectory, song)
 
-                    # get the correct offset that is to be used
-                    self.setOffset(subdirectory, song)
-
-                    # set owner details on the current song - iTunes owner details (hex)
-                    if not self.setiTunesOwner(subdirectory, song):
+                    # get the offset for the iTunes owner tag
+                    # if the offset could not be found, display a message
+                    if not (foundOffset := self.getOffset(subdirectory, song)):
                         print('  ! Unable to set iTunes owner tag on', song)
 
-                    # set owner details on the current song - remaining owner details (name and email)
-                    if not self.setTags(subdirectory, song):
-                        print('  ! Unable to set owner detail tags on', song)
+                    # # set owner details on the current song - iTunes owner tag (hex)
+                    if foundOffset:
+                        if not self.setiTunesOwner(subdirectory, song):
+                            print('  ! Unable to set iTunes owner tag on', song)
+
+                    # set owner details on the current song - remaining owner tags (name and email)
+                    self.setTags(subdirectory, song)
 
                     # set the cover art (user preference)
                     if self.coverArts:
