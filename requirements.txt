@@ -1,3 +1,4 @@
-requests==2.25.0
 mutagen==1.45.1
+colorama==0.4.4
+requests==2.25.0
 beautifulsoup4==4.9.3

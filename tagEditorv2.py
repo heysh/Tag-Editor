@@ -10,6 +10,10 @@ import string
 from bs4 import BeautifulSoup
 import urllib
 import re
+import colorama
+from colorama import Fore, Style
+
+# TODO: catch errors in setTags() - check if valid MP4 file
 
 
 class TagEditor:
@@ -176,6 +180,8 @@ class TagEditor:
 
     def __init__(self):
 
+        colorama.init(autoreset=True)
+
         # get owner details (name and email)
         # if details don't exist, ask user to enter details and store (json)
         if not self.getOwnerDetailsFromFile():
@@ -213,11 +219,12 @@ class TagEditor:
                 # if the cover art could not be retrieved, display a message
                 if self.coverArts:
                     if not (retrievedCoverArt := self.getCoverArt(subdirectory, self.songs[0])):
-                        print('  ! Could not retrieve cover art')
+                        print(Fore.LIGHTRED_EX +
+                              '  ! Could not retrieve cover art')
 
                 # iterate through every song
                 for song in self.songs:
-                    print('  > Processing', song)
+                    print('  > Processing', Fore.LIGHTWHITE_EX + song)
 
                     # create backup of current song (user preference)
                     if self.backup:
@@ -226,12 +233,14 @@ class TagEditor:
                     # get the offset for the iTunes owner tag
                     # if the offset could not be found, display a message
                     if not (foundOffset := self.getOffset(subdirectory, song)):
-                        print('  ! Unable to set iTunes owner tag on', song)
+                        print(Fore.LIGHTRED_EX +
+                              '  ! Unable to set iTunes owner tag on', Fore.LIGHTRED_EX + song)
 
                     # # set owner details on the current song - iTunes owner tag (hex)
                     if foundOffset:
                         if not self.setiTunesOwner(subdirectory, song):
-                            print('  ! Unable to set iTunes owner tag on', song)
+                            print(Fore.LIGHTRED_EX +
+                                  '  ! Unable to set iTunes owner tag on', Fore.LIGHTRED_EX + song)
 
                     # set owner details on the current song - remaining owner tags (name and email)
                     self.setTags(subdirectory, song)
@@ -242,7 +251,8 @@ class TagEditor:
                             self.setCoverArt(subdirectory, song)
 
                 # output "finished processing" message
-                print('Finished processing', self.album + '\n')
+                print('Finished processing',
+                      Fore.LIGHTWHITE_EX + self.album + '\n')
 
 
 if __name__ == '__main__':
