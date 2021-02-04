@@ -73,6 +73,13 @@ class TagEditor:
         self.songs = [file_ for file_ in os.listdir(
             directory) if file_[-4:] == '.m4a']
 
+    def isValidSong(self, directory, song):
+        try:
+            tags = MP4(directory / song)
+            return True
+        except MutagenError:
+            return False
+
     def getAlbum(self, directory, song):
         tags = MP4(directory / song)
         self.album = tags['\xa9alb'][0]
@@ -215,6 +222,12 @@ class TagEditor:
                 # iterate through every song
                 for song in self.songs:
 
+                    # if the song is invalid
+                    if not self.isValidSong(subdirectory, song):
+                        print(Fore.LIGHTRED_EX + '  ! Invalid file:',
+                              Fore.LIGHTRED_EX + song)
+                        continue
+
                     # if this is the first song
                     if self.songs.index(song) == 0:
 
@@ -259,7 +272,7 @@ class TagEditor:
 
                 # output "finished processing" message
                 print('Finished processing',
-                      Fore.LIGHTWHITE_EX + self.album + '\n')
+                      Fore.LIGHTWHITE_EX + subdirectory.name + '\n')
 
 
 if __name__ == '__main__':
