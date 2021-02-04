@@ -13,8 +13,6 @@ import re
 import colorama
 from colorama import Fore, Style
 
-# TODO: catch errors in setTags() - check if valid MP4 file
-
 
 class TagEditor:
 
