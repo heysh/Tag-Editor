@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from shutil import copy2
 import binascii
-from mutagen.mp4 import MP4, MP4Cover
+from mutagen.mp4 import MP4, MP4Cover, MutagenError
 import datetime
 import requests
 import string
@@ -212,18 +212,25 @@ class TagEditor:
                 if len(self.songs) < 1:
                     continue
 
-                # get the album
-                self.getAlbum(subdirectory, self.songs[0])
-
-                # get the cover art (user preference)
-                # if the cover art could not be retrieved, display a message
-                if self.coverArts:
-                    if not (retrievedCoverArt := self.getCoverArt(subdirectory, self.songs[0])):
-                        print(Fore.LIGHTRED_EX +
-                              '  ! Could not retrieve cover art')
-
                 # iterate through every song
                 for song in self.songs:
+
+                    # if this is the first song
+                    if self.songs.index(song) == 0:
+
+                        # get the album
+                        self.getAlbum(subdirectory, song)
+
+                        # get the cover art (user preference)
+                        # if the cover art could not be retrieved, display a message
+                        if self.coverArts:
+                            print('  > Retrieving cover art for',
+                                  Fore.LIGHTWHITE_EX + self.album)
+
+                            if not (retrievedCoverArt := self.getCoverArt(subdirectory, song)):
+                                print(Fore.LIGHTRED_EX +
+                                      '  ! Could not retrieve cover art')
+
                     print('  > Processing', Fore.LIGHTWHITE_EX + song)
 
                     # create backup of current song (user preference)
