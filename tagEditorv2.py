@@ -151,7 +151,12 @@ class TagEditor:
 
         # Apple Music url construction
         album = self.urlifyAlbum(tags['\xa9alb'][0])
-        playlistID = str(tags['plID'][0])
+
+        try:
+            playlistID = str(tags['plID'][0])
+        except KeyError:
+            return False
+
         url = self.baseUrl + album + '/' + playlistID
 
         # in case the album doesn't correspond to an Apple Music page
