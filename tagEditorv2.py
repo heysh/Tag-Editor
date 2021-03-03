@@ -143,7 +143,7 @@ class TagEditor:
         image = main.find_all('source', {'type': 'image/jpeg'})
         url = image[0]['srcset']
         url = url[:url.index(' ')]
-        url = url[:-16] + '99999x99999bb-100.jpg'
+        url = url[:-16] + '99999x99999bb-60.jpg'
         return url
 
     def getCoverArt(self, directory, song):
