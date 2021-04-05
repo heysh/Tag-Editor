@@ -1,7 +1,10 @@
 # iTunes M4A Tag Editor
 
-Change the 'name' and 'email' tags on purchased iTunes M4A files. The program will recursively look for any subfolders and edit the tags on songs found within them.
-Upon first launch, users are given the option to create backups for their files, and if they would like to use the largest possible cover arts.
+Change the 'name' and 'email' tags on purchased iTunes M4A files. Upon first launch, users are given three options:
+
+- create backups for the songs on which this program is used - in case there is an uncaught error in the processing of a song,
+- retrieve and use the largest possible cover arts for songs,
+- recursively look for subfolders within the given directory, and edit the tags on the songs found within.
 
 ## Installation
 
@@ -19,4 +22,4 @@ pip install -r requirements.txt
 
 ## Notice
 
-This program is only to be used in the case where the purchaser has changed their name, or their email address. Misuse of this software is not condoned.
+This program is only to be used in the case where the purchaser has changed their name, or their email address. I am not responsible for any misuse of this software.
